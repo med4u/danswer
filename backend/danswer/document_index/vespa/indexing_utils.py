@@ -187,7 +187,7 @@ def _index_vespa_chunk(
     vespa_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{vespa_chunk_id}"
     logger.debug(f'Indexing to URL "{vespa_url}"')
     res = http_client.post(
-        vespa_url, headers=json_header, json={"fields": vespa_document_fields}
+        vespa_url, headers=json_header, json={"fields": vespa_document_fields},timeout=120
     )
     try:
         res.raise_for_status()

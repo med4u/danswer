@@ -158,10 +158,12 @@ def read_text_file(
     file_content_raw = ""
     for ind, line in enumerate(file):
         try:
+            # Tentative de décodage de la ligne avec l'encodage spécifié
             line = line.decode(encoding) if isinstance(line, bytes) else line
-        except UnicodeDecodeError:
+        except (UnicodeDecodeError, LookupError):
+            # Si l'encodage échoue, forcer l'encodage en utf-8 et ignorer les erreurs
             line = (
-                line.decode(encoding, errors=errors)
+                line.decode('utf-8', errors='replace')
                 if isinstance(line, bytes)
                 else line
             )
