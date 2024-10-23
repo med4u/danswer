@@ -8,8 +8,10 @@ AI models for Danswer. This container and all the code is MIT Licensed and free 
 You can find it at https://hub.docker.com/r/danswer/danswer-model-server. For more details, \
 visit https://github.com/danswer-ai/danswer."
 
-# Default DANSWER_VERSION, typically overridden during builds by GitHub Actions
-ARG DANSWER_VERSION=0.3-dev
+
+# Default DANSWER_VERSION, typically overriden during builds by GitHub Actions.
+ARG DANSWER_VERSION=0.8-dev
+
 ENV DANSWER_VERSION=${DANSWER_VERSION} \
     DANSWER_RUNNING_IN_DOCKER="true"
 

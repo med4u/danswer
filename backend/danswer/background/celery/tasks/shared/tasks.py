@@ -6,7 +6,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from pydantic import BaseModel
 
 from danswer.access.access import get_access_for_document
-from danswer.background.celery.celery_app import task_logger
+from danswer.background.celery.apps.app_base import task_logger
 from danswer.db.document import delete_document_by_connector_credential_pair__no_commit
 from danswer.db.document import delete_documents_complete__no_commit
 from danswer.db.document import get_document
@@ -21,10 +21,10 @@ from danswer.server.documents.models import ConnectorCredentialPairIdentifier
 
 
 class RedisConnectorIndexingFenceData(BaseModel):
-    index_attempt_id: int
+    index_attempt_id: int | None
     started: datetime | None
     submitted: datetime
-    celery_task_id: str
+    celery_task_id: str | None
 
 
 @shared_task(
