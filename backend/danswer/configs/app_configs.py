@@ -223,7 +223,7 @@ except ValueError:
         CELERY_WORKER_LIGHT_PREFETCH_MULTIPLIER_DEFAULT
     )
 
-CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT = 1
+CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT = 2
 try:
     env_value = os.environ.get("CELERY_WORKER_INDEXING_CONCURRENCY")
     if not env_value:
@@ -358,7 +358,7 @@ DISABLE_INDEX_UPDATE_ON_SWAP = (
 # background. This is useful for speeding up indexing, but does require a
 # fairly large amount of memory in order to increase substantially, since
 # each worker loads the embedding models into memory.
-NUM_INDEXING_WORKERS = int(os.environ.get("NUM_INDEXING_WORKERS") or 1)
+NUM_INDEXING_WORKERS = int(os.environ.get("NUM_INDEXING_WORKERS") or 2)
 NUM_SECONDARY_INDEXING_WORKERS = int(
     os.environ.get("NUM_SECONDARY_INDEXING_WORKERS") or NUM_INDEXING_WORKERS
 )

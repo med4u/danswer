@@ -56,7 +56,7 @@ def _does_document_exist(
     Specifically in this case, document refers to a vespa document which is equivalent to a Danswer
     chunk. This checks for whether the chunk exists already in the index"""
     doc_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{doc_chunk_id}"
-    doc_fetch_response = http_client.get(doc_url)
+    doc_fetch_response = http_client.get(doc_url, timeout=90)
     if doc_fetch_response.status_code == 404:
         return False
 
@@ -186,7 +186,7 @@ def _index_vespa_chunk(
     vespa_url = f"{DOCUMENT_ID_ENDPOINT.format(index_name=index_name)}/{vespa_chunk_id}"
     logger.debug(f'Indexing to URL "{vespa_url}"')
     res = http_client.post(
-        vespa_url, headers=json_header, json={"fields": vespa_document_fields}
+        vespa_url, headers=json_header, json={"fields": vespa_document_fields},timeout=120
     )
     try:
         res.raise_for_status()

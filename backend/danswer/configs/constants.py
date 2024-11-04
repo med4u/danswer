@@ -69,16 +69,16 @@ KV_ENTERPRISE_SETTINGS_KEY = "danswer_enterprise_settings"
 KV_CUSTOM_ANALYTICS_SCRIPT_KEY = "__custom_analytics_script__"
 KV_DOCUMENTS_SEEDED_KEY = "documents_seeded"
 
-CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT = 60
-CELERY_PRIMARY_WORKER_LOCK_TIMEOUT = 120
+CELERY_VESPA_SYNC_BEAT_LOCK_TIMEOUT = 120 #doublé
+CELERY_PRIMARY_WORKER_LOCK_TIMEOUT = 240 #doublé
 
 # needs to be long enough to cover the maximum time it takes to download an object
 # if we can get callbacks as object bytes download, we could lower this a lot.
-CELERY_INDEXING_LOCK_TIMEOUT = 60 * 60  # 60 min
+CELERY_INDEXING_LOCK_TIMEOUT = 120 * 60  # 60 min doublé
 
 # needs to be long enough to cover the maximum time it takes to download an object
 # if we can get callbacks as object bytes download, we could lower this a lot.
-CELERY_PRUNING_LOCK_TIMEOUT = 300  # 5 min
+CELERY_PRUNING_LOCK_TIMEOUT = 600  # 5 min = 300 doublé
 
 DANSWER_REDIS_FUNCTION_LOCK_PREFIX = "da_function_lock:"
 

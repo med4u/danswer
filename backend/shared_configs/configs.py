@@ -4,6 +4,9 @@ from urllib.parse import urlparse
 
 from shared_configs.model_server_models import SupportedEmbeddingModel
 
+#Used to escape 413 Request Entity Too Large while embedding
+MAX_BATCH_SIZE = 128
+
 # Used for logging
 SLACK_CHANNEL_ID = "channel_id"
 

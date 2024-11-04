@@ -161,9 +161,16 @@ class EmbeddingModel:
         embeddings: list[Embedding] = []
         for idx, text_batch in enumerate(text_batches, start=1):
             logger.debug(f"Encoding batch {idx} of {len(text_batches)}")
+            
+            # Ajouter manuellement le préfixe au texte
+            prefixed_texts = [ 
+                f"{self.query_prefix} {text}" if text_type == EmbedTextType.QUERY else f"{self.passage_prefix} {text}"
+                for text in text_batch
+            ]
+            
             embed_request = EmbedRequest(
                 model_name=self.model_name,
-                texts=text_batch,
+                texts=prefixed_texts,  # Utiliser le texte avec préfixe ajouté manuellement
                 api_version=self.api_version,
                 deployment_name=self.deployment_name,
                 max_context_length=max_seq_length,
@@ -171,8 +178,6 @@ class EmbeddingModel:
                 api_key=self.api_key,
                 provider_type=self.provider_type,
                 text_type=text_type,
-                manual_query_prefix=self.query_prefix,
-                manual_passage_prefix=self.passage_prefix,
                 api_url=self.api_url,
             )
 

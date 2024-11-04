@@ -1,6 +1,7 @@
 import os
 import uuid
 from typing import cast
+from time import sleep
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -775,14 +776,18 @@ def connector_run_once(
     _: User = Depends(current_curator_or_admin_user),
     db_session: Session = Depends(get_session),
     tenant_id: str = Depends(get_current_tenant_id),
+    max_retries: int = 5,
+    retry_delay: int = 5,  # delay in seconds between retries
 ) -> StatusResponse[list[int]]:
     """Used to trigger indexing on a set of cc_pairs associated with a
     single connector."""
 
     r = get_redis_client(tenant_id=tenant_id)
-
     connector_id = run_info.connector_id
     specified_credential_ids = run_info.credential_ids
+
+    # Retrieve search settings here
+    search_settings = get_current_search_settings(db_session)
 
     try:
         possible_credential_ids = get_connector_credential_ids(
@@ -794,16 +799,11 @@ def connector_run_once(
             detail=f"Connector by id {connector_id} does not exist.",
         )
 
-    if not specified_credential_ids:
-        credential_ids = possible_credential_ids
-    else:
-        if set(specified_credential_ids).issubset(set(possible_credential_ids)):
-            credential_ids = specified_credential_ids
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail="Not all specified credentials are associated with connector",
-            )
+    credential_ids = (
+        specified_credential_ids
+        if specified_credential_ids and set(specified_credential_ids).issubset(set(possible_credential_ids))
+        else possible_credential_ids
+    )
 
     if not credential_ids:
         raise HTTPException(
@@ -811,61 +811,70 @@ def connector_run_once(
             detail="Connector has no valid credentials, cannot create index attempts.",
         )
 
-    # Prevents index attempts for cc pairs that already have an index attempt currently running
-    skipped_credentials = [
-        credential_id
-        for credential_id in credential_ids
-        if get_index_attempts_for_cc_pair(
-            cc_pair_identifier=ConnectorCredentialPairIdentifier(
-                connector_id=run_info.connector_id,
-                credential_id=credential_id,
-            ),
-            only_current=True,
-            db_session=db_session,
-            disinclude_finished=True,
-        )
-    ]
-
-    search_settings = get_current_search_settings(db_session)
-
-    connector_credential_pairs = [
-        get_connector_credential_pair(connector_id, credential_id, db_session)
-        for credential_id in credential_ids
-        if credential_id not in skipped_credentials
-    ]
-
-    index_attempt_ids = []
-    for cc_pair in connector_credential_pairs:
-        if cc_pair is not None:
-            attempt_id = try_creating_indexing_task(
-                primary_app,
-                cc_pair,
-                search_settings,
-                run_info.from_beginning,
-                db_session,
-                r,
-                tenant_id,
+    for attempt in range(max_retries):
+        skipped_credentials = [
+            credential_id
+            for credential_id in credential_ids
+            if get_index_attempts_for_cc_pair(
+                cc_pair_identifier=ConnectorCredentialPairIdentifier(
+                    connector_id=run_info.connector_id,
+                    credential_id=credential_id,
+                ),
+                only_current=True,
+                db_session=db_session,
+                disinclude_finished=True,
             )
-            if attempt_id:
-                logger.info(
-                    f"try_creating_indexing_task succeeded: cc_pair={cc_pair.id} attempt_id={attempt_id}"
-                )
-                index_attempt_ids.append(attempt_id)
+        ]
+
+        # If all credentials are skipped, wait and retry
+        if len(skipped_credentials) == len(credential_ids):
+            if attempt < max_retries - 1:
+                logger.info(f"All jobs queued or running. Retrying in {retry_delay} seconds...")
+                sleep(retry_delay)
+                continue
             else:
-                logger.info(f"try_creating_indexing_task failed: cc_pair={cc_pair.id}")
+                raise HTTPException(
+                    status_code=400,
+                    detail="All indexing jobs are queued or running. Please try again later."
+                )
 
-    if not index_attempt_ids:
-        raise HTTPException(
-            status_code=400,
-            detail="No new indexing attempts created, indexing jobs are queued or running.",
-        )
+        connector_credential_pairs = [
+            get_connector_credential_pair(connector_id, credential_id, db_session)
+            for credential_id in credential_ids
+            if credential_id not in skipped_credentials
+        ]
 
-    return StatusResponse(
-        success=True,
-        message=f"Successfully created {len(index_attempt_ids)} index attempts",
-        data=index_attempt_ids,
-    )
+        index_attempt_ids = []
+        for cc_pair in connector_credential_pairs:
+            if cc_pair is not None:
+                attempt_id = try_creating_indexing_task(
+                    primary_app,
+                    cc_pair,
+                    search_settings,  # Pass the retrieved search_settings here
+                    run_info.from_beginning,
+                    db_session,
+                    r,
+                    tenant_id,
+                )
+                if attempt_id:
+                    index_attempt_ids.append(attempt_id)
 
+        if index_attempt_ids:
+            return StatusResponse(
+                success=True,
+                message=f"Successfully created {len(index_attempt_ids)} index attempts",
+                data=index_attempt_ids,
+            )
+
+        # If no tasks were created, wait and retry
+        if attempt < max_retries - 1:
+            logger.info(f"No new indexing attempts created. Retrying in {retry_delay} seconds...")
+            sleep(retry_delay)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="No new indexing attempts created after retries; indexing jobs are queued or running.",
+            )
 
 """Endpoints for basic users"""
 

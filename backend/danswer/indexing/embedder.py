@@ -11,6 +11,7 @@ from danswer.utils.logger import setup_logger
 from danswer.utils.timing import log_function_time
 from shared_configs.configs import INDEXING_MODEL_SERVER_HOST
 from shared_configs.configs import INDEXING_MODEL_SERVER_PORT
+from shared_configs.configs import MAX_BATCH_SIZE
 from shared_configs.enums import EmbeddingProvider
 from shared_configs.enums import EmbedTextType
 from shared_configs.model_server_models import Embedding
@@ -131,11 +132,17 @@ class DefaultIndexingEmbedder(IndexingEmbedder):
                     raise RuntimeError("Large chunk contains mini chunks")
                 flat_chunk_texts.extend(chunk.mini_chunk_texts)
 
-        embeddings = self.embedding_model.encode(
-            texts=flat_chunk_texts,
-            text_type=EmbedTextType.PASSAGE,
-            large_chunks_present=large_chunks_present,
-        )
+        embeddings = []
+        batch_size = MAX_BATCH_SIZE
+        num_texts = len(flat_chunk_texts)
+        for i in range(0, num_texts, batch_size):
+            batch_texts = flat_chunk_texts[i:i + batch_size]
+            batch_embeddings = self.embedding_model.encode(
+                texts=batch_texts,
+                text_type=EmbedTextType.PASSAGE,
+                large_chunks_present=large_chunks_present,
+            )
+            embeddings.extend(batch_embeddings)
 
         chunk_titles = {
             chunk.source_document.get_title_for_document_index() for chunk in chunks
