@@ -228,7 +228,7 @@ def wait_for_redis(sender: Any, **kwargs: Any) -> None:
     r = get_redis_client(tenant_id=POSTGRES_DEFAULT_SCHEMA)
 
     WAIT_INTERVAL = 5
-    WAIT_LIMIT = 60
+    WAIT_LIMIT = 185
 
     ready = False
     time_start = time.monotonic()

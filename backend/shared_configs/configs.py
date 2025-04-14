@@ -5,6 +5,9 @@ from urllib.parse import urlparse
 
 from shared_configs.model_server_models import SupportedEmbeddingModel
 
+#Used to escape 413 Request Entity Too Large while embedding
+MAX_BATCH_SIZE = 128
+
 # Used for logging
 SLACK_CHANNEL_ID = "channel_id"
 
@@ -140,7 +143,7 @@ else:
 
 
 # Multi-tenancy configuration
-MULTI_TENANT = os.environ.get("MULTI_TENANT", "").lower() == "true"
+MULTI_TENANT = os.environ.get("MULTI_TENANT", "").lower() == "false"
 
 POSTGRES_DEFAULT_SCHEMA = os.environ.get("POSTGRES_DEFAULT_SCHEMA") or "public"
 DEFAULT_REDIS_PREFIX = os.environ.get("DEFAULT_REDIS_PREFIX") or "default"

@@ -228,9 +228,9 @@ def read_text_file(
         # decode
         try:
             line = line.decode(encoding) if isinstance(line, bytes) else line
-        except UnicodeDecodeError:
+        except (UnicodeDecodeError, LookupError):
             line = (
-                line.decode(encoding, errors=errors)
+                line.decode('utf-8', errors='replace')
                 if isinstance(line, bytes)
                 else line
             )

@@ -478,6 +478,7 @@ class VespaIndex(DocumentIndex):
                 update.url,
                 headers={"Content-Type": "application/json"},
                 json=update.update_request,
+                timeout=60,
             )
 
         # NOTE: using `httpx` here since `requests` doesn't support HTTP2. This is beneficient for

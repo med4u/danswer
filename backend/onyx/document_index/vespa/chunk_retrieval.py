@@ -310,7 +310,7 @@ def query_vespa(
 
     try:
         with get_vespa_http_client() as http_client:
-            response = http_client.post(SEARCH_ENDPOINT, json=params)
+            response = http_client.post(SEARCH_ENDPOINT, json=params, timeout=httpx.Timeout(60))
             response.raise_for_status()
     except httpx.HTTPError as e:
         error_base = "Failed to query Vespa"

@@ -227,7 +227,7 @@ def try_creating_prune_generator_task(
         if count > 0:
             return None
 
-    LOCK_TIMEOUT = 30
+    LOCK_TIMEOUT = 90
 
     # we need to serialize starting pruning since it can be triggered either via
     # celery beat or manually (API call)

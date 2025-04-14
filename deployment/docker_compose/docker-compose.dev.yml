@@ -17,6 +17,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - GEN_AI_MAX_OUTPUT_TOKENS=${GEN_AI_MAX_OUTPUT_TOKENS:-}
+      - GEN_AI_NUM_RESERVED_OUTPUT_TOKENS=${GEN_AI_NUM_RESERVED_OUTPUT_TOKENS:-}
       # Auth Settings
       - AUTH_TYPE=${AUTH_TYPE:-disabled}
       - SESSION_EXPIRE_TIME_SECONDS=${SESSION_EXPIRE_TIME_SECONDS:-}
@@ -157,6 +159,8 @@ services:
       - indexing_model_server
     restart: always
     environment:
+      - GEN_AI_MAX_OUTPUT_TOKENS=${GEN_AI_MAX_OUTPUT_TOKENS:-}
+      - GEN_AI_NUM_RESERVED_OUTPUT_TOKENS=${GEN_AI_NUM_RESERVED_OUTPUT_TOKENS:-4096}
       - ENCRYPTION_KEY_SECRET=${ENCRYPTION_KEY_SECRET:-}
       - JWT_PUBLIC_KEY_URL=${JWT_PUBLIC_KEY_URL:-} # used for JWT authentication of users via API
       # Gen AI Settings (Needed by OnyxBot)

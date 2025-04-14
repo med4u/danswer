@@ -138,7 +138,7 @@ def check_internet_connection(url: str) -> None:
         # Add a random delay to mimic human behavior
         time.sleep(random.uniform(0.1, 0.5))
 
-        response = session.get(url, timeout=5, allow_redirects=True)
+        response = session.get(url, timeout=300, allow_redirects=True)
 
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:

@@ -80,7 +80,7 @@ def get_vespa_http_client(no_timeout: bool = False, http2: bool = True) -> httpx
     )
 
 
-def wait_for_vespa_with_timeout(wait_interval: int = 5, wait_limit: int = 60) -> bool:
+def wait_for_vespa_with_timeout(wait_interval: int = 5, wait_limit: int = 180) -> bool:
     """Waits for Vespa to become ready subject to a timeout.
     Returns True if Vespa is ready, False otherwise."""
 

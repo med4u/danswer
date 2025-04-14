@@ -296,6 +296,7 @@ except ValueError:
     )
 
 CELERY_WORKER_INDEXING_CONCURRENCY_DEFAULT = 3
+
 try:
     env_value = os.environ.get("CELERY_WORKER_INDEXING_CONCURRENCY")
     if not env_value:
@@ -483,6 +484,17 @@ CONTINUE_ON_CONNECTOR_FAILURE = os.environ.get(
 DISABLE_INDEX_UPDATE_ON_SWAP = (
     os.environ.get("DISABLE_INDEX_UPDATE_ON_SWAP", "").lower() == "true"
 )
+#<<<<<<< Updated upstream
+#=======
+# Controls how many worker processes we spin up to index documents in the
+# background. This is useful for speeding up indexing, but does require a
+# fairly large amount of memory in order to increase substantially, since
+# each worker loads the embedding models into memory.
+NUM_INDEXING_WORKERS = int(os.environ.get("NUM_INDEXING_WORKERS") or 3)
+NUM_SECONDARY_INDEXING_WORKERS = int(
+    os.environ.get("NUM_SECONDARY_INDEXING_WORKERS") or NUM_INDEXING_WORKERS
+)
+#>>>>>>> Stashed changes
 # More accurate results at the expense of indexing speed and index size (stores additional 4 MINI_CHUNK vectors)
 ENABLE_MULTIPASS_INDEXING = (
     os.environ.get("ENABLE_MULTIPASS_INDEXING", "").lower() == "true"
@@ -520,7 +532,7 @@ INDEXING_TRACER_INTERVAL = int(os.environ.get("INDEXING_TRACER_INTERVAL") or 0)
 # Enable multi-threaded embedding model calls for parallel processing
 # Note: only applies for API-based embedding models
 INDEXING_EMBEDDING_MODEL_NUM_THREADS = int(
-    os.environ.get("INDEXING_EMBEDDING_MODEL_NUM_THREADS") or 1
+    os.environ.get("INDEXING_EMBEDDING_MODEL_NUM_THREADS") or 2
 )
 
 # During an indexing attempt, specifies the number of batches which are allowed to
@@ -547,7 +559,7 @@ MAX_TOKENS_FOR_FULL_INCLUSION = 4096
 #####
 # Miscellaneous
 #####
-JOB_TIMEOUT = 60 * 60 * 6  # 6 hours default
+JOB_TIMEOUT = 60 * 60 * 12  # 6 hours default
 # used to allow the background indexing jobs to use a different embedding
 # model server than the API server
 CURRENT_PROCESS_IS_AN_INDEXING_JOB = (
@@ -587,7 +599,7 @@ CUSTOM_ANSWER_VALIDITY_CONDITIONS = json.loads(
     os.environ.get("CUSTOM_ANSWER_VALIDITY_CONDITIONS", "[]")
 )
 
-VESPA_REQUEST_TIMEOUT = int(os.environ.get("VESPA_REQUEST_TIMEOUT") or "15")
+VESPA_REQUEST_TIMEOUT = int(os.environ.get("VESPA_REQUEST_TIMEOUT") or "150")
 
 SYSTEM_RECURSION_LIMIT = int(os.environ.get("SYSTEM_RECURSION_LIMIT") or "1000")
 
