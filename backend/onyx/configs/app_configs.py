@@ -484,13 +484,8 @@ CONTINUE_ON_CONNECTOR_FAILURE = os.environ.get(
 DISABLE_INDEX_UPDATE_ON_SWAP = (
     os.environ.get("DISABLE_INDEX_UPDATE_ON_SWAP", "").lower() == "true"
 )
-#<<<<<<< Updated upstream
-#=======
-# Controls how many worker processes we spin up to index documents in the
-# background. This is useful for speeding up indexing, but does require a
-# fairly large amount of memory in order to increase substantially, since
-# each worker loads the embedding models into memory.
 NUM_INDEXING_WORKERS = int(os.environ.get("NUM_INDEXING_WORKERS") or 3)
+
 NUM_SECONDARY_INDEXING_WORKERS = int(
     os.environ.get("NUM_SECONDARY_INDEXING_WORKERS") or NUM_INDEXING_WORKERS
 )
