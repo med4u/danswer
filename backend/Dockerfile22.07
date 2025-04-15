@@ -1,0 +1,145 @@
+#FROM python:3.11.7-slim-bookworm
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+#FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
+
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Paris
+
+RUN apt-get update && apt-get install -y \
+    git cmake pkg-config libprotobuf-c-dev protobuf-compiler \
+    libprotobuf-dev libgoogle-perftools-dev libpq-dev build-essential cron curl \
+    supervisor zip ca-certificates gnupg tzdata software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get install -y python3.11-dev python3.11-distutils \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y git cmake pkg-config libprotobuf-c-dev protobuf-compiler \
+       libprotobuf-dev libgoogle-perftools-dev libpq-dev build-essential cron curl \
+       supervisor zip ca-certificates gnupg && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
+RUN apt-get update && \
+    apt-get install software-properties-common -y && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get install python3.11-dev python3.11-distutils -y && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+
+LABEL com.danswer.maintainer="founders@danswer.ai"
+LABEL com.danswer.description="This image is for the backend of Danswer. It is MIT Licensed and \
+free for all to use. You can find it at https://hub.docker.com/r/danswer/danswer-backend. For \
+more details, visit https://github.com/danswer-ai/danswer."
+
+# Default DANSWER_VERSION, typically overriden during builds by GitHub Actions.
+ARG DANSWER_VERSION=0.3-dev
+ENV DANSWER_VERSION=${DANSWER_VERSION}
+RUN echo "DANSWER_VERSION: ${DANSWER_VERSION}"
+
+# Install system dependencies
+# cmake needed for psycopg (postgres)
+# libpq-dev needed for psycopg (postgres)
+# curl included just for users' convenience
+# zip for Vespa step futher down
+# ca-certificates for HTTPS
+RUN apt-get update && \
+    apt-get install -y \
+    cmake \
+    curl \
+    zip \
+    libgnutls30 \
+    libblkid1 \
+    libmount1 \
+    libsmartcols1 \
+    libuuid1 \
+    libxmlsec1-dev \
+    pkg-config \
+    gcc && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean
+
+# Install TensorFlow and PyTorch
+#RUN pip install --no-cache-dir tensorflow==2.15.0 torch==1.12.1+cu113 torchvision==0.13.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install --no-cache-dir tensorflow==2.15.0 torch==2.2.2+cu121 torchvision==0.17.2+cu121 torchaudio==2.2.2+cu121 -f https://download.pytorch.org/whl/cu121/torch_stable.html
+
+# Install Python dependencies
+# Remove py which is pulled in by retry, py is not needed and is a CVE
+COPY ./requirements/default.txt /tmp/requirements.txt
+COPY ./requirements/ee.txt /tmp/ee-requirements.txt
+RUN pip install --no-cache-dir --upgrade \
+        -r /tmp/requirements.txt \
+        -r /tmp/ee-requirements.txt && \
+    pip uninstall -y py && \
+    playwright install chromium && \
+    playwright install-deps chromium && \
+    rm /usr/bin/supervisord && \
+    ln -s /usr/local/bin/supervisord /usr/bin/supervisord
+
+# Cleanup for CVEs and size reduction
+# https://github.com/tornadoweb/tornado/issues/3107
+# xserver-common and xvfb included by playwright installation but not needed after
+# perl-base is part of the base Python Debian image but not needed for Danswer functionality
+# perl-base could only be removed with --allow-remove-essential
+#RUN apt-get update && \
+#    apt-get remove -y --allow-remove-essential \
+#        perl-base \
+#        xserver-common \
+#        xvfb \
+#        cmake \
+#        libldap-2.5-0 \
+#        libxmlsec1-dev \
+#        pkg-config \
+#        gcc && \
+RUN apt-get install -y libxmlsec1-openssl && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm -f /usr/local/lib/python3.11/site-packages/tornado/test/test.key
+
+
+RUN ln -s /usr/bin/python3.11 /usr/bin/python & \
+    ln -s /usr/bin/pip3.11 /usr/bin/pip
+
+
+
+# Pre-downloading models for setups with limited egress
+#RUN python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('manu/bge-m3-custom-fr')"
+
+# Pre-downloading NLTK for setups with limited egress
+RUN python -c "import nltk; \
+nltk.download('stopwords', quiet=True); \
+nltk.download('wordnet', quiet=True); \
+nltk.download('punkt', quiet=True);"
+
+# Set up application files
+WORKDIR /app
+
+# Enterprise Version Files
+COPY ./ee /app/ee
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Set up application files
+COPY ./danswer /app/danswer
+COPY ./shared_configs /app/shared_configs
+COPY ./alembic /app/alembic
+COPY ./alembic.ini /app/alembic.ini
+COPY supervisord.conf /usr/etc/supervisord.conf
+
+
+# Escape hatch
+COPY ./scripts/force_delete_connector_by_id.py /app/scripts/force_delete_connector_by_id.py
+
+# Put logo in assets
+COPY ./assets /app/assets
+
+ENV PYTHONPATH /app
+
+# Default command which does nothing
+# This container is used by api server and background which specify their own CMD
+CMD ["tail", "-f", "/dev/null"]
